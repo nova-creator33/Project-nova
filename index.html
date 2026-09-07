@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>PROJECT NOVA FIX</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:#080d18;color:#f2f5ff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:780px;margin:auto;padding:20px}.brand{font-size:27px;font-weight:800}.sub{color:#94a3c8;margin:4px 0 20px}
+.card{background:#111a2d;border:1px solid #293756;border-radius:18px;padding:17px;margin:12px 0}
+h2{font-size:18px;margin:0 0 10px}p{line-height:1.55}.small{font-size:13px;color:#9ba9c7}
+textarea{display:block;width:100%;min-height:110px;resize:vertical;background:#091020;color:#fff;border:1px solid #344462;border-radius:12px;padding:13px;font-size:16px;outline:none}
+button{appearance:none;-webkit-appearance:none;border:0;border-radius:12px;padding:13px 16px;margin:9px 6px 0 0;background:#eef2ff;color:#11182a;font-size:15px;font-weight:800;cursor:pointer}
+button:active{transform:scale(.98)}button.secondary{background:#273554;color:#eef2ff}
+.status{padding:10px 12px;background:#0a1324;border-radius:10px;margin-top:10px;font-size:13px}
+.msg{padding:13px;border-radius:13px;margin:9px 0;line-height:1.55;white-space:pre-wrap}.nova{background:#182640}.user{background:#263a65}
+.item{border-top:1px solid #24314b;padding:12px 0;line-height:1.55}.tag{display:inline-block;background:#2a3857;padding:4px 8px;border-radius:99px;font-size:11px;margin-bottom:5px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.stat{background:#0a1324;padding:11px;border-radius:12px}.num{font-size:20px;font-weight:800}.label{font-size:11px;color:#91a0c1}
+.hidden{display:none}.error{background:#3a1720;border:1px solid #73313e;color:#ffdfe4;padding:12px;border-radius:12px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="brand">PROJECT NOVA</div>
+<div class="sub">FIX v1 — smartphone safe core</div>
+
+<div class="card">
+<h2>💬 NOVAに相談する</h2>
+<p class="small">まずはAPIなしでも確実に動くようにした修正版。入力した目標を研究サイクルに変換します。</p>
+<textarea id="goal" placeholder="例：もっと効率のいい太陽光発電を考えたい"></textarea>
+<button id="start">🧠 NOVAを起動</button>
+<button id="demo" class="secondary">⚡ デモ</button>
+<button id="clear" class="secondary">記憶を消去</button>
+<div id="status" class="status">状態：待機中</div>
+<div id="err"></div>
+</div>
+
+<div id="dash" class="card hidden">
+<h2>CORE STATUS</h2>
+<div class="grid">
+<div class="stat"><div class="label">CYCLES</div><div id="cycles" class="num">0</div></div>
+<div class="stat"><div class="label">MEMORY</div><div id="memory" class="num">0</div></div>
+<div class="stat"><div class="label">HYPOTHESES</div><div id="hyp" class="num">0</div></div>
+<div class="stat"><div class="label">MODE</div><div id="mode" class="num">LOCAL</div></div>
+</div>
+</div>
+
+<div id="process" class="card hidden">
+<h2>🔬 NOVA RESEARCH LOOP</h2>
+<div id="log"></div>
+</div>
+
+<div class="card">
+<h2>🔧 接続診断</h2>
+<p class="small">ボタンが反応しない場合の確認用です。</p>
+<button id="test" class="secondary">ボタン動作テスト</button>
+<button id="storage" class="secondary">記憶テスト</button>
+<div id="diag" class="small" style="margin-top:9px"></div>
+</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var memoryKey="PROJECT_NOVA_FIX_MEMORY";
+var state={cycles:0,goal:""};
+
+function $(id){return document.getElementById(id);}
+function setStatus(t){$("status").textContent="状態："+t;}
+function escapeText(s){
+ return String(s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+ });
+}
+function getMemory(){
+ try{return JSON.parse(localStorage.getItem(memoryKey)||"[]");}
+ catch(e){return [];}
+}
+function saveMemory(obj){
+ try{
+  var a=getMemory();a.push(obj);
+  localStorage.setItem(memoryKey,JSON.stringify(a.slice(-50)));
+ }catch(e){}
+ update();
+}
+function update(){
+ $("memory").textContent=getMemory().length;
+ $("cycles").textContent=state.cycles;
+ $("hyp").textContent=getMemory().filter(function(x){return x.type==="hypothesis";}).length;
+}
+function add(tag,text){
+ $("process").classList.remove("hidden");
+ var d=document.createElement("div");d.className="item";
+ d.innerHTML='<span class="tag">'+escapeText(tag)+'</span><br>'+escapeText(text);
+ $("log").appendChild(d);
+ d.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function start(){
+ try{
+  $("err").innerHTML="";
+  var goal=$("goal").value.trim();
+  if(!goal){
+   setStatus("目標を入力してください");
+   $("goal").focus();
+   return;
+  }
+  state.goal=goal;state.cycles++;
+  $("dash").classList.remove("hidden");
+  $("log").innerHTML="";
+  setStatus("研究中");
+  add("GOAL","「"+goal+"」を研究目標として受け取りました。");
+  add("UNDERSTANDING","達成条件・制約・評価指標を整理します。");
+  add("KNOWLEDGE GAP","現時点で不足している知識と、調べる必要がある情報を洗い出します。");
+  add("DISCOVERY","分野を固定せず、物理・化学・生物・情報・工学・経済など必要な領域から候補を作ります。");
+  add("EVALUATION","候補を新規性・重要性・実現可能性・検証可能性の観点から比較します。");
+  add("HYPOTHESIS","上位候補について、観測可能な予測を持つ仮説を生成します。");
+  saveMemory({type:"hypothesis",goal:goal,lesson:"仮説には予測と反証条件を付ける",time:Date.now()});
+  add("CRITIC","仮説の弱点、反証条件、代替説明、隠れた前提を探します。");
+  add("EXPERIMENT","安全で小さく検証できる方法を優先して設計します。");
+  add("REFLECTION","失敗した場合も、原因・制約・新しい知識として記憶します。");
+  add("NEXT ACTION","次に取得すべき情報を決め、次の研究サイクルへつなげます。");
+  add("MEMORY","今回の目標と学習内容を長期記憶へ保存しました。");
+  setStatus("研究サイクル完了");
+  update();
+ }catch(e){
+  $("err").innerHTML='<div class="error">NOVA内部エラー：'+escapeText(e.message||e)+'</div>';
+  setStatus("エラー");
+ }
+}
+function demo(){
+ $("goal").value="まだ解決されていない問題を、新しい方法で解決したい";
+ start();
+}
+function clearMemory(){
+ try{localStorage.removeItem(memoryKey);}catch(e){}
+ $("log").innerHTML="";$("process").classList.add("hidden");update();setStatus("記憶を消去しました");
+}
+function buttonTest(){
+ $("diag").textContent="✅ JavaScriptとボタンは正常に動作しています。現在時刻："+new Date().toLocaleTimeString();
+}
+function storageTest(){
+ try{
+  localStorage.setItem("__nova_test","ok");
+  var ok=localStorage.getItem("__nova_test")==="ok";
+  localStorage.removeItem("__nova_test");
+  $("diag").textContent=ok?"✅ ブラウザの記憶機能も正常です。":"⚠️ 記憶機能が利用できません。";
+ }catch(e){$("diag").textContent="⚠️ localStorageを利用できません。";}
+}
+$("start").addEventListener("click",start);
+$("demo").addEventListener("click",demo);
+$("clear").addEventListener("click",clearMemory);
+$("test").addEventListener("click",buttonTest);
+$("storage").addEventListener("click",storageTest);
+update();
+})();
+</script>
+</body>
+</html>
